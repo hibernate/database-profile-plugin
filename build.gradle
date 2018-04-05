@@ -1,0 +1,93 @@
+buildscript {
+	dependencies {
+		classpath 'org.hibernate.build.gradle:gradle-maven-publish-auth:2.0.1'
+	}
+}
+
+plugins {
+	id 'java-gradle-plugin'
+	id 'java'
+	id 'idea'
+	id 'eclipse'
+	id "com.gradle.plugin-publish" version "0.9.10"
+}
+
+repositories {
+    mavenCentral()
+}
+
+group = 'org.hibernate.build.gradle'
+version = '1.0.0-SNAPSHOT'
+
+// to avoid confusion with build dirs from the test projects
+// which will be named `build`
+buildDir = 'target'
+
+gradlePlugin {
+	plugins {
+		profilesPlugin {
+			id = 'org.hibernate.testing.database-profile'
+			implementationClass = 'org.hibernate.build.gradle.testing.database.ProfilePlugin'
+		}
+	}
+}
+
+pluginBundle {
+	website = 'http://hibernate.org'
+	vcsUrl = 'https://github.com/hibernate/hibernate-matrix-testing'
+
+	tags = ['hibernate', 'testing', 'database-profile']
+
+	plugins {
+		profilesPlugin {
+			id = 'org.hibernate.testing.database-profile'
+			displayName = 'Hibernate database profile testing plugin'
+			description = 'Support for testing against multiple databases via profiles'
+		}
+	}
+}
+
+buildDir = "target"
+
+dependencies {
+    compile gradleApi()
+    compile 'org.apache.ant:ant:1.8.2'
+
+	ext {
+		junit5Version = '5.0.1'
+	}
+
+	// JUnit dependencies made up of:
+	// 		* JUnit 5
+	// 		* the Jupiter engine which runs JUnit 5 based tests
+	testCompile( "org.junit.jupiter:junit-jupiter-api:${dependencies.ext.junit5Version}" )
+	testRuntime( "org.junit.jupiter:junit-jupiter-engine:${dependencies.ext.junit5Version}" )
+
+	// workaround
+	testCompileOnly('org.apiguardian:apiguardian-api:1.0.0')
+}
+
+task compile
+tasks.compile.dependsOn tasks.compileJava, tasks.compileTestJava
+
+idea {
+	project {
+		languageLevel = '1.6'
+	}
+	module {
+		downloadSources = true
+	}
+}
+
+task copyResourcesToIntelliJOutFolder(dependsOn: tasks.processTestResources) {
+	doLast {
+		copy {
+			from "$buildDir/resources/test"
+			into 'out/test/resources'
+		}
+	}
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.6'
+}
