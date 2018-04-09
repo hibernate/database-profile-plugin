@@ -46,7 +46,8 @@ import org.gradle.api.artifacts.Configuration;
 public class JdbcDirectoryProfile extends AbstractProfileImpl {
     private final Configuration jdbcDependencies;
 
-    public JdbcDirectoryProfile(File jdbcDirectory, Project project) {
+    @SuppressWarnings("WeakerAccess")
+    protected JdbcDirectoryProfile(File jdbcDirectory, Project project) {
         super( jdbcDirectory.getParentFile(), project );
 
         assert jdbcDirectory.isDirectory();

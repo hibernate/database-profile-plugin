@@ -11,11 +11,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nullable;
 
 import org.gradle.api.Project;
-import org.gradle.api.Transformer;
-import org.gradle.api.provider.Provider;
 
 import org.hibernate.build.gradle.testing.BuildException;
 

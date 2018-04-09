@@ -64,5 +64,6 @@ public interface Profile {
 	/**
 	 * Read access to the runtime configuration additions contributed by the definition
 	 */
+	@SuppressWarnings("unused")
 	Configuration getTestingRuntimeConfiguration();
 }

@@ -48,7 +48,8 @@ public class MatrixDotGradleProfile extends AbstractProfileImpl {
 
 	private final Configuration jdbcDependencies;
 
-	public MatrixDotGradleProfile(File matrixDotGradleFile, Project project) {
+	@SuppressWarnings("WeakerAccess")
+	protected MatrixDotGradleProfile(File matrixDotGradleFile, Project project) {
 		super( matrixDotGradleFile.getParentFile(), project );
 		jdbcDependencies = prepareConfiguration( getName() );
         final ConventionImpl convention = new ConventionImpl( jdbcDependencies, project );

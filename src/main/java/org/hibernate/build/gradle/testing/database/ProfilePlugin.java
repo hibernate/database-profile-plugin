@@ -36,8 +36,6 @@ import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.tasks.Copy;
 
-import static org.hibernate.build.gradle.testing.Helper.executeTask;
-
 /**
  * Plugin used to apply notion of database profiles
  *

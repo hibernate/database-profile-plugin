@@ -7,6 +7,11 @@
 package org.hibernate.build.gradle.testing.database;
 
 /**
+ * Used to represent a profile before we want to "select" it -
+ * selecting it causes many things to happen including jars being
+ * added to the test classpath - we want to delay that until we
+ * know which profile is selected
+ *
  * @author Steve Ebersole
  */
 interface ProfileSelector {

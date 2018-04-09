@@ -57,7 +57,7 @@ public abstract class AbstractProfileImpl implements Profile {
 	private final Project project;
 	private final Map<String,Object> hibernateProperties;
 
-	@SuppressWarnings( {"unchecked"})
+	@SuppressWarnings({"unchecked", "WeakerAccess"})
 	protected AbstractProfileImpl(File profileDirectory, Project project) {
 		this.profileDirectory = profileDirectory;
 		this.name = profileDirectory.getName();

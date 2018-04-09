@@ -20,7 +20,6 @@ import org.gradle.api.Task;
 import org.gradle.api.file.CopySpec;
 import org.gradle.api.internal.AbstractTask;
 import org.gradle.api.tasks.Copy;
-import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.util.ConfigureUtil;
 
@@ -32,13 +31,20 @@ import org.apache.tools.ant.filters.ReplaceTokens;
 import static org.hibernate.build.gradle.testing.database.ProfilePlugin.PROFILE_PROVIDER_EXT_KEY;
 
 /**
- * Used as a "grouping task" for performing "tasks" related to applying
- * a database profile.
+ * Can be used to perform a number of "actions" when this task is
+ * executed via {@link #augment}, {@link #extend} and {@link #filterCopy}.
  *
- * This task has no real "task action" - it merely
- * acts as a grouping for other tasks that rely on resolved Profile
+ * E.g. we automatically apply an after-task action to load a `hibernate.properties`
+ * file that the project might have in its `src/test/resources` output dir,
+ * "augment" its properties with the profile's properties and write them back
+ * out.
  *
- * Also centralizes the resolution of the Profile
+ * {@link #filterCopy} would be something like we do in Hibernate ORM build
+ * with "bundles" for JPA deployment testing.  Basically it defines a "copy spec"
+ * that will be executed as part of this task
+ *
+ * {@link #extend} allows for any kind of usage of Profile in
+ * a custom after-task action
  *
  * @author Steve Ebersole
  */
