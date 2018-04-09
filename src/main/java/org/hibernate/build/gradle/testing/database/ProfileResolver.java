@@ -24,6 +24,7 @@ class ProfileResolver {
     public static final String STANDARD_DATABASES_DIRECTORY = "databases";
 	public static final String CUSTOM_DATABASES_DIRECTORY_KEY = "custom_profiles_dir";
 	public static final String PROFILE_PROP_NAME = "database_profile_name";
+	public static final String LEGACY_PROFILE_PROP_NAME = "db";
 	public static final String MATRIX_BUILD_FILE = "matrix.gradle";
 	public static final String JDBC_DIR = "jdbc";
 
@@ -95,7 +96,16 @@ class ProfileResolver {
 			return (String) project.property( PROFILE_PROP_NAME );
 		}
 
-		return System.getProperty( PROFILE_PROP_NAME );
+		final String sysProp = System.getProperty( PROFILE_PROP_NAME );
+		if ( sysProp != null ) {
+			return sysProp;
+		}
+
+		if ( project.hasProperty( LEGACY_PROFILE_PROP_NAME ) ) {
+			return (String) project.property( LEGACY_PROFILE_PROP_NAME );
+		}
+
+		return System.getProperty( LEGACY_PROFILE_PROP_NAME );
 	}
 
 

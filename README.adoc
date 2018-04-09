@@ -1,6 +1,6 @@
-## Database Profile Plugin
+= Database Profile Plugin
 
-### Goal
+== Goal
 
 The idea of this plugin is to extend Gradle with the idea of named database profiles that a 
 user could choose between when starting a build.  The selection of a profile might imply a number of 
@@ -8,7 +8,7 @@ actions that must occur based on the profile selected - we might need to add ext
 `testRuntime` configuration, adjust properties files, etc.
 
 
-### Applying the plugin
+== Applying the plugin
 
 Using Gradle's new plugins DSL:
 
@@ -16,7 +16,6 @@ Using Gradle's new plugins DSL:
         ...
         id 'org.hibernate.testing.database-profile' version 'X.Y.Z'
     }
-
 
 Using Gradle's legacy Configuration approach:
 
@@ -36,36 +35,45 @@ Using Gradle's legacy Configuration approach:
 	apply plugin: "org.hibernate.testing.database-profile"
 
 
-### Basics
+== Basics
 
 When applied, the plugin will:
 
-1. Register an extension (`ProfileExtension`) under `databaseProfiles`
-2. Create a task called `applyDatabaseProfile` of type `ProfileTask`
-
-`ProfileExtension` is used to control where the plugin can look for profiles and control
-the profile that should be selected.
-
-`ProfileTask` acts as a Gradle `Provider` (think delayed resolution) of the `Profile`
-to use.  
+1. Create a task named `applyDatabaseProfile` of type `ProfileTask`
+2. For every available profile (see below), create a task named `processTestResources_<profile_name>`
+	and a task named `test_<profile_name>` which do what they sound like they'd do :)
 
 
-### Defining Profiles
+`applyDatabaseProfile` is added to `processTestResources` as a finalizer.
+
+Each `test_<profile_name>` task is finalized by `test`.
+
+Each `processTestResources_<profile_name>` task depends on `processTestResources` and is finalized by `applyDatabaseProfile`
+
+
+[IMPORTANT]
+----
+Only one such `processTestResources_<profile_name>` or `test_<profile_name>`
+can be done at once
+----
+
+
+== Defining Profiles
 
 Available profiles are resolved using a directory search, as follows:
 
 1. If the project is non-root, see if it defines a `${projectDir}/databases/` directory.  If it
 	does then search here first
 2. If any custom search directories have been added, check these next.  Custom directories
-	can be added either by specifying a `custom-profiles-dir` build property or 
-	through `ProfileExtension#customSearchDirectory`
+	can be added by specifying a `custom-profiles-dir` build property
 3. Finally look at the project's parent project for a `${projectDir}/databases/` directory, up
 	to the root project
 
 These directories are searched recursively.  We leverage this in Hibernate to allow the standard _databases_ directory
 to hold local profiles too.  That is achieved by a _.gitignore_ which says to ignore any directory named
 _local_ under the directory _databases_.  So one option to provide custom profiles is to drop them in there.  That
-has the benefit of not having to specify _hibernate-matrix-databases_
+has the benefit of not having to specify _custom_profiles_dir_ build property.
+
 Within these directories, the plugin looks for sub-directories which either:
 
 *    contain a file named _matrix.gradle_.  _matrix.gradle_ is a limited DSL Gradle file which currently understands
@@ -82,7 +90,7 @@ Within these directories, the plugin looks for sub-directories which either:
 Such directories become the basis of a database profile made available to the build.  The name of the profile
 is taken from the directory name.  Database profiles can also contain a _resources_ directory.
 
-An example layout using _matrix.gradle_ might be
+An example layout using _jdbc_ directory approach:
 
         ├── mysql50
         │   ├── jdbc
@@ -90,7 +98,7 @@ An example layout using _matrix.gradle_ might be
         │   └── resources
         │       └── hibernate.properties
 
-Or
+versus using _matrix.gradle_:
 
         ├── mysql50
         │   ├── matrix.gradle
@@ -101,29 +109,32 @@ Or
 Either would result in a database profile named _mysql50_
 
 
-### Specifying the profile to use
+==Specifying the profile to use
 
 The profile to use can be specified in 2 ways:
 
 1. Set `database_profile_name` build property to the name of the profile to use
-2. Use `ProfileExtension#profileToUse`
+2. Calling one of the `processTestResources_<profile_name>` or `test_<profile_name>` tasks
 
 
-### Plugin behavior
+== Plugin behavior
 
-After project evaluation, the plugin will resolve the `Profile` to use.  If none,
-the rest of behavior is short-circuited.
+During evaluation phase, the plugin locates all available profiles (see `ProfileResolver`) and
+creates the `applyDatabaseProfile` task (see `ProfileTask`).
 
-The behavior comes from the plugin's `ProfileTask`.  `ProfileTask` is a 
-"grouping task" - it defines no "task action", it simply acts as a container
-to which we can hook other actions as a singular task name.  It is 
-expected that most of these "other actions" come from:
+It delays as long as possible the determination of the specific profile to use.  This is needed
+to make `processTestResources_<profile_name>` and `test_<profile_name>` tasks work.
+
+If no profile name is specified the behavior is to not perform any of the task actions.
+
+The task can contain 3 types of actions:
 
 * `ProfileTask#augment`
 * `ProfileTask#filterCopy`
 * `ProfileTask#extend`
 
-By default the plugin will resolve overlay the profile's properties over 
+
+By default the plugin will overlay the profile's properties over
 top of the `${buildDir}/resources/test/hibernate.properties` file.  This is a 
 process called augmentation - a properties file is loaded into a `Properties`
 object and then the profile's properties are added over top of them and then
@@ -133,9 +144,18 @@ A custom properties file augmentation can be requested using `ProfileTask#augmen
 
 Builds can also request a filtered-copy using `ProfileTask#filterCopy`.  A filtered-copy
 is basically a copy based on the provided CopySpec config closure extended profile properties 
-replacements.
+replacements.  E.g., Hibernate ORM uses this to process the `bundles` directory used
+to test JPA deployments) - used to replace info in XML, properties, etc
 
 Lastly, pretty generic actions can be requested using `ProfileTask#extend` which
 accepts an `Action<Profile>` - during `doLast`, the task will call this action with 
 the resolved profile.   
 
+
+== Using with IDE
+
+Personally I plan to look again into having IntelliJ delegate to Gradle.  That used to be dog slow, but maybe better today....
+
+Anyway, you can also continue using the old `.. processTestResources -Pdb=derby copyResourcesToIntelliJOutFolder`
+approach.  You can even do `... processTestResources_h2 copyResourcesToIntelliJOutFolder`.  Once `applyDatabaseProfile`
+has applied the profile it will not re-apply the profile next time if either (a) profile name is null or (b) profile name is the same
