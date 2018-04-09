@@ -1,23 +1,66 @@
-## Hibernate Database Testing
+## Database Profile Plugin
 
 ### Goal
 
-The idea of matrix testing is to allow testing in a varied set of configurations.  Specifically for Hibernate, this
-correlates to running the same set of tests against against multiple databases.  This goal is achieved through
-2 Gradle plugins.
-
-Note that the second plugin (org.hibernate.build.gradle.testing.matrix.MatrixTestingPlugin) applies the first
-one (DatabaseProfilePlugin) automatically, so generally scripts would
-not even reference it.  The reason for the split is historical and these 2 may get merged later...
+The idea of this plugin is to extend Gradle with the idea of named database profiles that a 
+user could choose between when starting a build.  The selection of a profile might imply a number of 
+actions that must occur based on the profile selected - we might need to add extra jars to the 
+`testRuntime` configuration, adjust properties files, etc.
 
 
-### DatabaseProfilePlugin
+### Applying the plugin
 
-This plugin is responsible for determining which databases are available for testing in the given environment.  It
-does this by performing a directory search.  Well actually it can perform up to 2 directory searches:
+Using Gradle's new plugins DSL:
 
-*    The standard profile directory is named _databases_ at the base directory of the root project
-*    A custom profile directory, which can be named by setting a system property named _hibernate-matrix-databases_
+    plugins {
+        ...
+        id 'org.hibernate.testing.database-profile' version 'X.Y.Z'
+    }
+
+
+Using Gradle's legacy Configuration approach:
+
+	buildscript {
+	  repositories {
+        gradlePluginPortal()
+		// ^^ same as:
+		// maven {
+		//   url "https://plugins.gradle.org/m2/"
+		// }
+	  }
+	  dependencies {
+		classpath "gradle.plugin.org.hibernate.build:database-profile-plugin:X.Y.Z"
+	  }
+	}
+	
+	apply plugin: "org.hibernate.testing.database-profile"
+
+
+### Basics
+
+When applied, the plugin will:
+
+1. Register an extension (`ProfileExtension`) under `databaseProfiles`
+2. Create a task called `applyDatabaseProfile` of type `ProfileTask`
+
+`ProfileExtension` is used to control where the plugin can look for profiles and control
+the profile that should be selected.
+
+`ProfileTask` acts as a Gradle `Provider` (think delayed resolution) of the `Profile`
+to use.  
+
+
+### Defining Profiles
+
+Available profiles are resolved using a directory search, as follows:
+
+1. If the project is non-root, see if it defines a `${projectDir}/databases/` directory.  If it
+	does then search here first
+2. If any custom search directories have been added, check these next.  Custom directories
+	can be added either by specifying a `custom-profiles-dir` build property or 
+	through `ProfileExtension#customSearchDirectory`
+3. Finally look at the project's parent project for a `${projectDir}/databases/` directory, up
+	to the root project
 
 These directories are searched recursively.  We leverage this in Hibernate to allow the standard _databases_ directory
 to hold local profiles too.  That is achieved by a _.gitignore_ which says to ignore any directory named
@@ -37,8 +80,7 @@ Within these directories, the plugin looks for sub-directories which either:
 *    contain a directory named _jdbc_ which is assumed to hold jar file(s) needed for the profile.
 
 Such directories become the basis of a database profile made available to the build.  The name of the profile
-(which becomes important when we discuss the next plugin) is taken from the directory name.  Database profiles can
-also contain a _resources_ directory.
+is taken from the directory name.  Database profiles can also contain a _resources_ directory.
 
 An example layout using _matrix.gradle_ might be
 
@@ -58,44 +100,42 @@ Or
 
 Either would result in a database profile named _mysql50_
 
-Profiles can be ignored using the *hibernate-matrix-ignore* setting which accepts either
 
-*   a comma-separated list of the database profile names to be skipped
-*   the magic value **all** which indicates to ignore all profiles
+### Specifying the profile to use
+
+The profile to use can be specified in 2 ways:
+
+1. Set `database_profile_name` build property to the name of the profile to use
+2. Use `ProfileExtension#profileToUse`
 
 
-### Database Allocator (JBoss internally, VPN required)
+### Plugin behavior
 
-For developers on the Red Hat VPN, one option is to use the databases in the JBoss QA lab for testing.  Note that
-this tends to result in **very** slow builds but the obvious trade off is not having to install and manage these
-databases locally.
+After project evaluation, the plugin will resolve the `Profile` to use.  If none,
+the rest of behavior is short-circuited.
 
-The JBoss QA team developed a servlet to allow management of "database allocations" including requesting an
-allocation be set up.  The MatrixTestingPlugin is able to play with that feature allowing you to ask the build
-to allocate the database for you.  This feature is disabled by default, to enable it, you need this system property
-named _hibernate-matrix-dballcoation_ which accepts either
+The behavior comes from the plugin's `ProfileTask`.  `ProfileTask` is a 
+"grouping task" - it defines no "task action", it simply acts as a container
+to which we can hook other actions as a singular task name.  It is 
+expected that most of these "other actions" come from:
 
-*   a comma-separate list of profile names
-*   the magic value **all** which indicates to allocate for all **supported** databases (see
-    org.hibernate.build.gradle.testing.database.alloc.DatabaseAllocator.SUPPORTED_DB_NAMES for details)
+* `ProfileTask#augment`
+* `ProfileTask#filterCopy`
+* `ProfileTask#extend`
 
-For example, if you want to run matrix test on PostgreSQL 8.4, knowing that the database name for that is
-_postgresql84_, you can use this command:
+By default the plugin will resolve overlay the profile's properties over 
+top of the `${buildDir}/resources/test/hibernate.properties` file.  This is a 
+process called augmentation - a properties file is loaded into a `Properties`
+object and then the profile's properties are added over top of them and then
+written back out.
 
-        gradle matrix_postgresql84 -Dhibernate-matrix-dballocation=postgresql84
+A custom properties file augmentation can be requested using `ProfileTask#augment`.
 
-which would
+Builds can also request a filtered-copy using `ProfileTask#filterCopy`.  A filtered-copy
+is basically a copy based on the provided CopySpec config closure extended profile properties 
+replacements.
 
-1.  talk to the database allocator service and make a database instance available
-2.  use the information returned from the allocator service to properly set up the connection information
-    Hibernate would need to connect to that instance.
-3.  run the tests against the postgresql84 profile
-
-For some databases we need adjust the connection url with some options after get it from the database allocator.  In
-these cases we can use the system property _hibernate-matrix-dballocation-url-postfix-${dbname}_.  For example
-    `-Dhibernate-matrix-dballocation-url-postfix-sybase155="?SQLINITSTRING=set quoted_identifier on&amp;DYNAMIC_PREPARE=true"`
-
-A useful parameter to the allocator service when allocating a database is the _requester_ which is basically just a
-string meant to identify who is making the request.  By default the Hibernate build uses _hibernate_.  But you can
-specify an alternate requester using the system property _hibernate-matrix-dballocation-requestee_
+Lastly, pretty generic actions can be requested using `ProfileTask#extend` which
+accepts an `Action<Profile>` - during `doLast`, the task will call this action with 
+the resolved profile.   
 

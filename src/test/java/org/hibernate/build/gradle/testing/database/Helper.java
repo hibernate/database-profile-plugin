@@ -43,7 +43,7 @@ public class Helper {
 			return props;
 		}
 		catch (IOException e) {
-			throw new RuntimeException( "Unable to load project's output `hibernate.properties` file" );
+			throw new RuntimeException( "Unable to load project's output `hibernate.properties` file", e );
 		}
 	}
 

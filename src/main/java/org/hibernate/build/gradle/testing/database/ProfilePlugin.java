@@ -31,11 +31,12 @@
 
 package org.hibernate.build.gradle.testing.database;
 
-import java.io.File;
-
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.gradle.api.tasks.Copy;
+
+import static org.hibernate.build.gradle.testing.Helper.executeTask;
 
 /**
  * Plugin used to apply notion of database profiles
@@ -45,53 +46,57 @@ import org.gradle.api.tasks.Copy;
  */
 @SuppressWarnings("WeakerAccess")
 public class ProfilePlugin implements Plugin<Project> {
-	public static final String EXTENSION_NAME = "databaseProfiles";
 
-	/**
-	 * The directory containing standard database profiles.
-	 */
-    public static final String STANDARD_DATABASES_DIRECTORY = "databases";
+	public static final String TASK_NAME = "applyDatabaseProfile";
+	public static final String PROFILE_PROVIDER_EXT_KEY = ProfilePlugin.class.getName() + ":profileProvider";
 
-	/**
-	 * Names a system setting key that can be set to point to a directory containing additional, custom
-	 * database profiles.
-	 */
-	public static final String CUSTOM_DATABASES_DIRECTORY_KEY = "hibernate-matrix-databases";
+	private ProfileResolver profileResolver;
 
-	public static final String MATRIX_BUILD_FILE = "matrix.gradle";
-	public static final String JDBC_DIR = "jdbc";
-
-	private static final String TASK_NAME = "applyDatabaseProfile";
+	ProfileResolver getProfileResolver() {
+		return profileResolver;
+	}
 
 	public void apply(Project project) {
-		/// Create the extension
-        final ProfileExtension extension = project.getExtensions().create(
-				EXTENSION_NAME,
-				ProfileExtension.class,
-				project
+		profileResolver = new ProfileResolver( project );
+		project.getExtensions().getExtraProperties().set(
+				PROFILE_PROVIDER_EXT_KEY,
+				profileResolver
 		);
 
-		final ProfileTask groupingTask = project.getTasks().create( TASK_NAME, ProfileTask.class );
+		final ProfileTask applyTask = project.getTasks().create( TASK_NAME, ProfileTask.class );
 
-        project.afterEvaluate(
-        		p -> {
-        			if ( extension.getProfileToUse().getOrNull() != null ) {
-        				applyResolver( project, groupingTask );
-					}
-				}
-		);
+		final Task testTask = project.getTasks().findByName( "test" );
+		final Copy resourcesTask = (Copy) project.getTasks().findByName( "processTestResources" );
+		if ( resourcesTask != null ) {
+			applyTask.dependsOn( resourcesTask );
+			resourcesTask.finalizedBy( applyTask );
+		}
 
-    }
+		for ( String name : profileResolver.getAvailableProfileNames() ) {
+			if ( testTask != null ) {
+				// the project has a test task - create a profile-specific test "task"
+				final Task profileTestTask = project.getTasks().create( "test_" + name );
+				profileTestTask.getInputs().property( "profileName", name );
+				profileTestTask.doFirst(
+						task -> profileResolver.injectSelectedProfile( name )
+				);
 
-	private void applyResolver(Project project, ProfileTask groupingTask) {
-		final Copy testResourcesTask = (Copy) project.getTasks().findByName( "processTestResources" );
-		if ( testResourcesTask != null ) {
-			final File hibPropsFile = new File( testResourcesTask.getDestinationDir(), "hibernate.properties" );
-			if ( hibPropsFile.exists() ) {
-				groupingTask.augment( hibPropsFile );
+				// finalizedBy ensures that the "real" test task will always be run after
+				// this profile-specific task
+				profileTestTask.finalizedBy( testTask );
 			}
 
-			testResourcesTask.finalizedBy( TASK_NAME );
+			if ( resourcesTask != null ) {
+				final Task profileResourcesTask = project.getTasks().create( "processTestResources_" + name );
+				profileResourcesTask.getInputs().property( "profileName", name );
+				profileResourcesTask.dependsOn( resourcesTask );
+				profileResourcesTask.finalizedBy( applyTask );
+				profileResourcesTask.doFirst(
+						task -> {
+							profileResolver.injectSelectedProfile( name );
+						}
+				);
+			}
 		}
-	}
+    }
 }

@@ -12,18 +12,24 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 import java.util.Properties;
 
+import org.gradle.api.Action;
+import org.gradle.api.Task;
 import org.gradle.api.file.CopySpec;
 import org.gradle.api.internal.AbstractTask;
-import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.TaskAction;
 import org.gradle.util.ConfigureUtil;
 
 import org.hibernate.build.gradle.testing.BuildException;
 
 import groovy.lang.Closure;
 import org.apache.tools.ant.filters.ReplaceTokens;
+
+import static org.hibernate.build.gradle.testing.database.ProfilePlugin.PROFILE_PROVIDER_EXT_KEY;
 
 /**
  * Used as a "grouping task" for performing "tasks" related to applying
@@ -36,16 +42,37 @@ import org.apache.tools.ant.filters.ReplaceTokens;
  *
  * @author Steve Ebersole
  */
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class ProfileTask extends AbstractTask {
-	private final Provider<Profile> profile;
+
+	private final ProfileResolver profileResolver;
 
 	public ProfileTask() {
-		this.profile = getProject().provider( new ProfileResolver( getProject() ) );
+		profileResolver = (ProfileResolver) getProject().getExtensions()
+				.getExtraProperties()
+				.get( PROFILE_PROVIDER_EXT_KEY );
+
+		doLast(
+				task -> {
+					final Task testResourcesTask = getProject().getTasks().findByName( "processTestResources" );
+					if ( testResourcesTask != null ) {
+						final File testResourcesOutDir = ( (Copy) testResourcesTask ).getDestinationDir();
+						final File hibernatePropertiesFile = new File(
+								testResourcesOutDir,
+								"hibernate.properties"
+						);
+						if ( hibernatePropertiesFile.exists() ) {
+							overWriteProperties( hibernatePropertiesFile );
+						}
+					}
+				}
+		);
 	}
 
-	@Input
-	Provider<Profile> getProfile() {
-		return profile;
+	@TaskAction
+	public void resolveProfile() {
+		// no real task action itself - mainly used to attach actions to
+		profileResolver.getSelectedProfile();
 	}
 
 	public void augment(Object propertiesFile) {
@@ -53,13 +80,31 @@ public class ProfileTask extends AbstractTask {
 	}
 
 	public void augment(File propertiesFile) {
-		doLast(
-				task -> {
-					final Properties props = loadTestingProps( propertiesFile );
-					props.putAll( profile.get().getHibernateProperties() );
-					writeToBuildOutput( props, propertiesFile, profile.get() );
-				}
-		);
+		if ( profileResolver == null ) {
+			return;
+		}
+
+		doLast( task -> overWriteProperties( propertiesFile ) );
+	}
+
+	private void overWriteProperties(File propertiesFile) {
+		final Profile profile = profileResolver.getSelectedProfile();
+		if ( profile == null ) {
+			// do nothing
+			return;
+		}
+
+		final Properties props = loadTestingProps( propertiesFile );
+
+		boolean changed = false;
+		for ( Map.Entry<String, Object> entry : profile.getHibernateProperties().entrySet() ) {
+			final Object existing = props.put( entry.getKey(), entry.getValue() );
+			changed = changed || existing != entry.getValue();
+		}
+
+		if ( changed ) {
+			writeToBuildOutput( props, propertiesFile, profile );
+		}
 	}
 
 	private static Properties loadTestingProps(File propsFile) {
@@ -103,14 +148,31 @@ public class ProfileTask extends AbstractTask {
 
 
 	public void filterCopy(Closure<CopySpec> config) {
+		final Profile profile = profileResolver.getSelectedProfile();
+		if ( profile == null ) {
+			// do nothing
+			return;
+		}
+
 		doLast(
 				task -> getProject().copy(
 						copySpec -> {
 							ConfigureUtil.configure( config, copySpec );
-							copySpec.filter( profile.get().getHibernateProperties(), ReplaceTokens.class );
+							copySpec.filter( profile.getHibernateProperties(), ReplaceTokens.class );
 						}
 				)
 		);
 	}
 
+	public void extend(Action<Profile> action) {
+		final Profile profile = profileResolver.getSelectedProfile();
+		if ( profile == null ) {
+			// do nothing
+			return;
+		}
+
+		doLast(
+				task -> action.execute( profile )
+		);
+	}
 }

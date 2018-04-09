@@ -6,14 +6,10 @@
  */
 package org.hibernate.build.gradle.testing.database;
 
-import org.junit.Test;
-
 /**
  * @author Steve Ebersole
  */
-public class MultiProjectTests {
-	@Test
-	public void placeholder() {
-
-	}
+interface ProfileSelector {
+	String getProfileName();
+	Profile select();
 }

@@ -6,18 +6,19 @@
  */
 package org.hibernate.build.gradle.testing.database;
 
+import java.util.List;
 import java.util.Properties;
 
-import org.gradle.api.ProjectConfigurationException;
 import org.gradle.testkit.runner.BuildResult;
+import org.gradle.testkit.runner.BuildTask;
 import org.gradle.testkit.runner.GradleRunner;
+import org.gradle.testkit.runner.TaskOutcome;
 
-import org.hibernate.build.gradle.testing.BuildException;
+import org.junit.Test;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Steve Ebersole
@@ -31,13 +32,38 @@ public class SimpleProjectTests {
 		final BuildResult buildResult = GradleRunner.create()
 				.withProjectDir( Helper.projectDirectory( PROJECT_NAME ) )
 				.withArguments(
+						"clean",
 						"processTestResources",
-						"-Pdb=h2",
+						"-Pdatabase_profile_name=h2",
+						"-P" + ProfileResolver.CUSTOM_DATABASES_DIRECTORY_KEY + "=../databases",
 						"--stacktrace",
 						"--refresh-dependencies",
 						"--no-build-cache"
 				)
-				.withDebug( true ) //Useful to debug the plugin code directly in the IDE
+				.withDebug( true )
+				.withPluginClasspath()
+				.build();
+
+		System.out.println( buildResult.getOutput() );
+
+		final Properties writtenProperties = Helper.projectTestProperties( PROJECT_NAME );
+		assertTrue( writtenProperties.containsKey( Helper.DIALECT_PROP_KEY ) );
+		assertEquals( "H2Dialect", writtenProperties.get( Helper.DIALECT_PROP_KEY ) );
+	}
+
+	@Test
+	public void testAliasTask() {
+		final BuildResult buildResult = GradleRunner.create()
+				.withProjectDir( Helper.projectDirectory( PROJECT_NAME ) )
+				.withArguments(
+						"clean",
+						"processTestResources_h2",
+						"-P" + ProfileResolver.CUSTOM_DATABASES_DIRECTORY_KEY + "=../databases",
+						"--stacktrace",
+						"--refresh-dependencies",
+						"--no-build-cache"
+				)
+				.withDebug( true )
 				.withPluginClasspath()
 				.build();
 
@@ -50,25 +76,25 @@ public class SimpleProjectTests {
 
 	@Test
 	public void testInvalidProfile() {
-		try {
-			GradleRunner.create()
-					.withProjectDir( Helper.projectDirectory( PROJECT_NAME ) )
-					.withArguments(
-							"processTestResources",
-							"-Pdb=mongodb",
-							"--stacktrace",
-							"--refresh-dependencies",
-							"--no-build-cache"
-					)
-					.withDebug( true ) //Useful to debug the plugin code directly in the IDE
-					.withPluginClasspath()
-					.buildAndFail();
-		}
-		catch (Exception e) {
-			assertTrue(
-					e instanceof BuildException
-							|| e.getCause() instanceof BuildException
-			);
-		}
+		final GradleRunner runner = GradleRunner.create()
+				.withProjectDir( Helper.projectDirectory( PROJECT_NAME ) )
+				.withArguments(
+						"clean",
+						"processTestResources",
+						"-Pdatabase_profile_name=mongodb",
+						"-P" + ProfileResolver.CUSTOM_DATABASES_DIRECTORY_KEY + "=../databases",
+						"--stacktrace",
+						"--refresh-dependencies",
+						"--no-build-cache"
+				)
+				.withDebug( true )
+				.withPluginClasspath();
+
+		final BuildResult buildResult = runner.buildAndFail();
+		System.out.println( buildResult.getOutput() );
+
+		final List<BuildTask> failedTasks = buildResult.tasks( TaskOutcome.FAILED );
+		assertEquals( 1, failedTasks.size() );
+		assertEquals( ':' + ProfilePlugin.TASK_NAME, failedTasks.get( 0 ).getPath() );
 	}
 }
