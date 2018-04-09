@@ -11,6 +11,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
@@ -154,31 +155,38 @@ public class ProfileTask extends AbstractTask {
 
 
 	public void filterCopy(Closure<CopySpec> config) {
-		final Profile profile = profileResolver.getSelectedProfile();
-		if ( profile == null ) {
-			// do nothing
-			return;
-		}
-
 		doLast(
-				task -> getProject().copy(
-						copySpec -> {
-							ConfigureUtil.configure( config, copySpec );
-							copySpec.filter( profile.getHibernateProperties(), ReplaceTokens.class );
-						}
-				)
+				task -> {
+					final Profile profile = profileResolver.getSelectedProfile();
+					if ( profile == null ) {
+						// do nothing
+						return;
+					}
+
+					getProject().copy(
+							copySpec -> {
+								ConfigureUtil.configure( config, copySpec );
+								copySpec.filter(
+										Collections.singletonMap( "tokens", profile.getHibernateProperties() ),
+										ReplaceTokens.class
+								);
+							}
+					);
+				}
 		);
 	}
 
 	public void extend(Action<Profile> action) {
-		final Profile profile = profileResolver.getSelectedProfile();
-		if ( profile == null ) {
-			// do nothing
-			return;
-		}
-
 		doLast(
-				task -> action.execute( profile )
+				task -> {
+					final Profile profile = profileResolver.getSelectedProfile();
+					if ( profile == null ) {
+						// do nothing
+						return;
+					}
+
+					action.execute( profile );
+				}
 		);
 	}
 }

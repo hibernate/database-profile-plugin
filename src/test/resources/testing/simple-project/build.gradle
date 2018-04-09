@@ -15,3 +15,14 @@ version '1.0-SNAPSHOT'
 //	profileToUse = project.ext.databaseProfile
 //	customSearchDirectory '../databases'
 //}
+
+tasks.applyDatabaseProfile {
+	filterCopy {
+		from file( 'src/test/bundles' )
+		into file( "${buildDir}/bundles" )
+	}
+
+	doFirst {
+		file( "${buildDir}/bundles" ).mkdirs()
+	}
+}
