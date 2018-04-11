@@ -47,7 +47,7 @@ public class JdbcDirectoryProfile extends AbstractProfileImpl {
     private final Configuration jdbcDependencies;
 
     @SuppressWarnings("WeakerAccess")
-    protected JdbcDirectoryProfile(File jdbcDirectory, Project project) {
+    public JdbcDirectoryProfile(File jdbcDirectory, Project project) {
         super( jdbcDirectory.getParentFile(), project );
 
         assert jdbcDirectory.isDirectory();
