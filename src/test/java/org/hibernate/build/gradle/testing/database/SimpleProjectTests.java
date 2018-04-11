@@ -30,7 +30,7 @@ public class SimpleProjectTests {
 	@Test
 	public void testValidProfile() {
 		final BuildResult buildResult = GradleRunner.create()
-				.withProjectDir( Helper.projectDirectory( PROJECT_NAME ) )
+				.withProjectDir( TestHelper.projectDirectory( PROJECT_NAME ) )
 				.withArguments(
 						"clean",
 						"processTestResources",
@@ -46,18 +46,18 @@ public class SimpleProjectTests {
 
 		System.out.println( buildResult.getOutput() );
 
-		final Properties writtenProperties = Helper.projectTestProperties( PROJECT_NAME );
-		assertTrue( writtenProperties.containsKey( Helper.DIALECT_PROP_KEY ) );
-		assertEquals( "H2Dialect", writtenProperties.get( Helper.DIALECT_PROP_KEY ) );
+		final Properties writtenProperties = TestHelper.projectTestProperties( PROJECT_NAME );
+		assertTrue( writtenProperties.containsKey( TestHelper.DIALECT_PROP_KEY ) );
+		assertEquals( "H2Dialect", writtenProperties.get( TestHelper.DIALECT_PROP_KEY ) );
 	}
 
 	@Test
 	public void testAliasTask() {
 		final BuildResult buildResult = GradleRunner.create()
-				.withProjectDir( Helper.projectDirectory( PROJECT_NAME ) )
+				.withProjectDir( TestHelper.projectDirectory( PROJECT_NAME ) )
 				.withArguments(
 						"clean",
-						"processTestResources_h2",
+						"applyDatabaseProfile_h2",
 						"-P" + ProfileResolver.CUSTOM_DATABASES_DIRECTORY_KEY + "=../databases",
 						"--stacktrace",
 						"--refresh-dependencies",
@@ -69,15 +69,15 @@ public class SimpleProjectTests {
 
 		System.out.println( buildResult.getOutput() );
 
-		final Properties writtenProperties = Helper.projectTestProperties( PROJECT_NAME );
-		assertTrue( writtenProperties.containsKey( Helper.DIALECT_PROP_KEY ) );
-		assertEquals( "H2Dialect", writtenProperties.get( Helper.DIALECT_PROP_KEY ) );
+		final Properties writtenProperties = TestHelper.projectTestProperties( PROJECT_NAME );
+		assertTrue( writtenProperties.containsKey( TestHelper.DIALECT_PROP_KEY ) );
+		assertEquals( "H2Dialect", writtenProperties.get( TestHelper.DIALECT_PROP_KEY ) );
 	}
 
 	@Test
 	public void testInvalidProfile() {
 		final GradleRunner runner = GradleRunner.create()
-				.withProjectDir( Helper.projectDirectory( PROJECT_NAME ) )
+				.withProjectDir( TestHelper.projectDirectory( PROJECT_NAME ) )
 				.withArguments(
 						"clean",
 						"processTestResources",

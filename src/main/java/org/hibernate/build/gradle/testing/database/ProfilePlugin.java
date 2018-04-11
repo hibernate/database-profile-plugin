@@ -63,38 +63,42 @@ public class ProfilePlugin implements Plugin<Project> {
 
 		final ProfileTask applyTask = project.getTasks().create( TASK_NAME, ProfileTask.class );
 
-		final Task testTask = project.getTasks().findByName( "test" );
-		final Copy resourcesTask = (Copy) project.getTasks().findByName( "processTestResources" );
-		if ( resourcesTask != null ) {
-			applyTask.dependsOn( resourcesTask );
-			resourcesTask.finalizedBy( applyTask );
-		}
+		project.afterEvaluate(
+				p -> {
+					final Task testTask = project.getTasks().findByName( "test" );
+					final Copy resourcesTask = (Copy) project.getTasks().findByName( "processTestResources" );
+					if ( resourcesTask != null ) {
+						applyTask.dependsOn( resourcesTask );
+						resourcesTask.finalizedBy( applyTask );
+					}
 
-		for ( String name : profileResolver.getAvailableProfileNames() ) {
-			if ( testTask != null ) {
-				// the project has a test task - create a profile-specific test "task"
-				final Task profileTestTask = project.getTasks().create( "test_" + name );
-				profileTestTask.getInputs().property( "profileName", name );
-				profileTestTask.doFirst(
-						task -> profileResolver.injectSelectedProfile( name )
-				);
+					for ( String name : profileResolver.getAvailableProfileNames() ) {
+						if ( testTask != null ) {
+							// the project has a test task - create a profile-specific test "task"
+							final Task profileTestTask = project.getTasks().create( "test_" + name );
+							profileTestTask.getInputs().property( "profileName", name );
+							profileTestTask.doFirst(
+									task -> profileResolver.injectSelectedProfile( name )
+							);
 
-				// finalizedBy ensures that the "real" test task will always be run after
-				// this profile-specific task
-				profileTestTask.finalizedBy( testTask );
-			}
-
-			if ( resourcesTask != null ) {
-				final Task profileResourcesTask = project.getTasks().create( "processTestResources_" + name );
-				profileResourcesTask.getInputs().property( "profileName", name );
-				profileResourcesTask.dependsOn( resourcesTask );
-				profileResourcesTask.finalizedBy( applyTask );
-				profileResourcesTask.doFirst(
-						task -> {
-							profileResolver.injectSelectedProfile( name );
+							// finalizedBy ensures that the "real" test task will always be run after
+							// this profile-specific task
+							profileTestTask.finalizedBy( testTask );
 						}
-				);
-			}
-		}
+
+						if ( resourcesTask != null ) {
+							final Task profileResourcesTask = project.getTasks().create( TASK_NAME + '_' + name );
+							profileResourcesTask.getInputs().property( "profileName", name );
+							profileResourcesTask.dependsOn( resourcesTask );
+							profileResourcesTask.finalizedBy( applyTask );
+							profileResourcesTask.doFirst(
+									task -> {
+										profileResolver.injectSelectedProfile( name );
+									}
+							);
+						}
+					}
+				}
+		);
     }
 }

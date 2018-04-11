@@ -7,19 +7,23 @@
 package org.hibernate.build.gradle.testing.database;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.gradle.api.Project;
 
 import org.hibernate.build.gradle.testing.BuildException;
+import org.hibernate.build.gradle.testing.Helper;
 
 /**
  * @author Steve Ebersole
  */
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"WeakerAccess", "unused"})
 class ProfileResolver {
     public static final String STANDARD_DATABASES_DIRECTORY = "databases";
 	public static final String CUSTOM_DATABASES_DIRECTORY_KEY = "custom_profiles_dir";
@@ -27,6 +31,8 @@ class ProfileResolver {
 	public static final String LEGACY_PROFILE_PROP_NAME = "db";
 	public static final String MATRIX_BUILD_FILE = "matrix.gradle";
 	public static final String JDBC_DIR = "jdbc";
+
+	private static final String STASH_PROFILE_NAME_KEY = "profileName";
 
 	private final Project project;
 	private final Map<String,ProfileSelector> profileSelectorByName;
@@ -42,6 +48,11 @@ class ProfileResolver {
 		processCustomProfiles( tmp );
 		processProjectProfiles( tmp );
 		this.profileSelectorByName = Collections.unmodifiableMap( tmp );
+
+		project.getLogger().debug(
+				"Available database profiles : %s",
+				String.join( ",", profileSelectorByName.keySet() )
+		);
 	}
 
 	public Set<String> getAvailableProfileNames() {
@@ -73,17 +84,32 @@ class ProfileResolver {
 		// no matter what happens from here, we are resolved
 		resolved = true;
 
-		final String selectedProfileName = determineProfileNameToUse( project );
-		if ( selectedProfileName == null ) {
-			// its ok to have no profile - we will simply use the one from last run
-			return null;
+		// see if we had a previous "stash"
+		final File stashFile = stashFile( project );
+		String stashedProfileName = null;
+		if ( stashFile.exists() ) {
+			final Properties properties = Helper.loadProperties( stashFile );
+			stashedProfileName = properties.getProperty( STASH_PROFILE_NAME_KEY );
+		}
+
+		final String selectedProfileName = determineProfileNameToUse( project, stashedProfileName );
+
+		if ( ! selectedProfileName.equals( stashedProfileName ) ) {
+			// the profile changed from the last run (stash)
+			final Properties stashProperties = new Properties();
+			stashProperties.setProperty( STASH_PROFILE_NAME_KEY, selectedProfileName );
+			Helper.writeProperties(
+					stashProperties,
+					stashFile,
+					"Database profile stash (" + selectedProfileName + ") - " + new SimpleDateFormat( "yyyy-MM-dd" ).format( new Date() )
+			);
 		}
 
 		final ProfileSelector selector = profileSelectorByName.get( selectedProfileName );
 		if ( selector == null ) {
 			// a profile was requested, but we could not find it
 			throw new BuildException(
-					"Unable to resolve requested database profile - " + selectedProfileName +
+					"Unable to resolve database profile - " + selectedProfileName +
 							" [available : " + String.join( ",", profileSelectorByName.keySet() ) + "]"
 			);
 		}
@@ -91,7 +117,12 @@ class ProfileResolver {
 		return selector.select();
 	}
 
-	private static String determineProfileNameToUse(Project project) {
+	private static File stashFile(Project project) {
+		return project.file( new File( project.getBuildDir(), "profile-testing/stash.properties" ) );
+
+	}
+
+	private static String determineProfileNameToUse(Project project, String stashedProfileName) {
 		if ( project.hasProperty( PROFILE_PROP_NAME ) ) {
 			return (String) project.property( PROFILE_PROP_NAME );
 		}
@@ -105,7 +136,12 @@ class ProfileResolver {
 			return (String) project.property( LEGACY_PROFILE_PROP_NAME );
 		}
 
-		return System.getProperty( LEGACY_PROFILE_PROP_NAME );
+		final String legacySysProp = System.getProperty( LEGACY_PROFILE_PROP_NAME );
+		if ( legacySysProp != null ) {
+			return legacySysProp;
+		}
+
+		return stashedProfileName != null ? stashedProfileName : "h2";
 	}
 
 

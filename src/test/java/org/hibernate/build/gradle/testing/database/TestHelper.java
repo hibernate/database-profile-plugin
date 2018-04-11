@@ -7,15 +7,15 @@
 package org.hibernate.build.gradle.testing.database;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
+
+import org.hibernate.build.gradle.testing.Helper;
 
 /**
  * @author Steve Ebersole
  */
-public class Helper {
+public class TestHelper {
 	public static final String DIALECT_PROP_KEY = "hibernate.dialect";
 
 	// our output is the base for all of the test projects, so we must be
@@ -23,7 +23,7 @@ public class Helper {
 	// within that directory we will have access to the `databases` dir as well
 	// as the various test project root dirs
 	public static File testProjectsBaseDirectory() {
-		final URL baseUrl = Helper.class.getResource( "/db-profile-testResource-locator.properties" );
+		final URL baseUrl = TestHelper.class.getResource( "/db-profile-testResource-locator.properties" );
 		return new File( baseUrl.getFile() ).getParentFile();
 	}
 
@@ -37,20 +37,6 @@ public class Helper {
 				"build/resources/test/hibernate.properties"
 		);
 
-		try (FileInputStream stream = new FileInputStream( propFile )) {
-			final Properties props = new Properties();
-			props.load( stream );
-			return props;
-		}
-		catch (IOException e) {
-			throw new RuntimeException( "Unable to load project's output `hibernate.properties` file", e );
-		}
-	}
-
-	public static File findResourcesOutputDir() {
-		final URL url = Helper.class.getResource( "/db-profile-testResource-locator.properties" );
-
-		// this is the test project's
-		return new File( url.getFile() ).getParentFile();
+		return Helper.loadProperties( propFile );
 	}
 }

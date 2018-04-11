@@ -6,16 +6,50 @@
  */
 package org.hibernate.build.gradle.testing;
 
-import org.gradle.api.Action;
-import org.gradle.api.Task;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Properties;
 
 /**
  * @author Steve Ebersole
  */
 public class Helper {
-	public static void executeTask(Task task) {
-		for ( Action<? super Task> action : task.getActions() ) {
-			action.execute( task );
+	public static Properties loadProperties(File propFile) {
+		try (FileInputStream stream = new FileInputStream( propFile )) {
+			final Properties props = new Properties();
+			props.load( stream );
+			return props;
+		}
+		catch (IOException e) {
+			throw new BuildException( "Unable to load Properties from file : " + propFile.getAbsolutePath(), e );
+		}
+	}
+
+	public static void writeProperties(
+			Properties properties,
+			File file,
+			String comment) {
+		if ( ! file.exists() ) {
+			if ( ! file.getParentFile().exists() ) {
+				file.getParentFile().mkdirs();
+			}
+
+			try {
+				file.createNewFile();
+			}
+			catch (IOException e) {
+				throw new BuildException( "Unable to create file to store Properties : " + file.getAbsolutePath(), e );
+			}
+		}
+
+		try ( FileOutputStream stream = new FileOutputStream( file ) ) {
+			properties.store( stream, comment );
+			stream.flush();
+		}
+		catch (IOException e) {
+			throw new BuildException( "Unable to store Properties to file : " + file.getAbsolutePath(), e );
 		}
 	}
 }

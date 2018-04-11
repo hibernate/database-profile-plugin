@@ -7,9 +7,6 @@
 package org.hibernate.build.gradle.testing.database;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -25,6 +22,7 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.util.ConfigureUtil;
 
 import org.hibernate.build.gradle.testing.BuildException;
+import org.hibernate.build.gradle.testing.Helper;
 
 import groovy.lang.Closure;
 import org.apache.tools.ant.filters.ReplaceTokens;
@@ -110,7 +108,7 @@ public class ProfileTask extends AbstractTask {
 		}
 
 		if ( changed ) {
-			writeToBuildOutput( props, propertiesFile, profile );
+			writeTestingProps( props, propertiesFile, profile );
 		}
 	}
 
@@ -123,34 +121,19 @@ public class ProfileTask extends AbstractTask {
 			throw new BuildException( "java.io.File passed to augment did not refer to a file : " + propsFile.getAbsolutePath() );
 		}
 
-		final Properties testingProps = new Properties();
-
-		if ( propsFile.exists() ) {
-			try ( FileInputStream stream = new FileInputStream( propsFile ) ) {
-				testingProps.load( stream );
-			}
-			catch (IOException e) {
-				throw new BuildException( "Could not load properties file" );
-			}
-		}
-		return testingProps;
+		return Helper.loadProperties( propsFile );
 	}
 
-	private static void writeToBuildOutput(
+	private static void writeTestingProps(
 			Properties testingProps,
 			File propsFile,
 			Profile profile) {
-		try ( FileOutputStream stream = new FileOutputStream( propsFile ) ) {
-			testingProps.store(
-					stream,
-					"Augmented for database profile `" + profile.getName() +
-							"` - " + new SimpleDateFormat( "yyyy-MM-dd" ).format( new Date() )
-			);
-			stream.flush();
-		}
-		catch (IOException e) {
-			throw new BuildException( "Unable to store augmented `hibernate.properties` testing properties file" );
-		}
+		Helper.writeProperties(
+				testingProps,
+				propsFile,
+				"Augmented for database profile `" + profile.getName() +
+						"` - " + new SimpleDateFormat( "yyyy-MM-dd" ).format( new Date() )
+		);
 	}
 
 
