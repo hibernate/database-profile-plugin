@@ -27,10 +27,14 @@ import org.hibernate.build.gradle.testing.Helper;
 class ProfileResolver {
     public static final String STANDARD_DATABASES_DIRECTORY = "databases";
 	public static final String CUSTOM_DATABASES_DIRECTORY_KEY = "custom_profiles_dir";
+
 	public static final String PROFILE_PROP_NAME = "database_profile_name";
+
 	public static final String LEGACY_PROFILE_PROP_NAME = "db";
+
 	public static final String MATRIX_BUILD_FILE = "matrix.gradle";
 	public static final String JDBC_DIR = "jdbc";
+	public static final String PROPS_FILE = "resources/hibernate.properties";
 
 	private static final String STASH_PROFILE_NAME_KEY = "profileName";
 
@@ -220,6 +224,36 @@ class ProfileResolver {
 				@Override
 				public Profile select() {
 					return new JdbcDirectoryProfile( jdbcDirectory, project );
+				}
+			};
+		}
+
+		final File propsFile = new File( directory, PROPS_FILE );
+		if ( propsFile.exists() ) {
+			return new ProfileSelector() {
+				@Override
+				public String getProfileName() {
+					return directory.getName();
+				}
+
+				@Override
+				public Profile select() {
+					return null;
+				}
+			};
+		}
+
+		final File propsOnlyDirectory = new File( directory, JDBC_DIR );
+		if ( jdbcDirectory.exists() && jdbcDirectory.isDirectory() ) {
+			return new ProfileSelector() {
+				@Override
+				public String getProfileName() {
+					return directory.getName();
+				}
+
+				@Override
+				public Profile select() {
+					return new PropertiesOnlyProfile( propsFile, project );
 				}
 			};
 		}

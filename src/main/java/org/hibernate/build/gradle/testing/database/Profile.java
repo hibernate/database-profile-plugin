@@ -47,17 +47,23 @@ public interface Profile {
 	 */
 	String getName();
 
+//	/**
+//	 * The base directory for the profile definition
+//	 *
+//	 * @return The profile directory for this profile.
+//	 */
 	/**
 	 * The base directory for the profile definition
-	 *
-	 * @return The profile directory for this profile.
 	 */
 	File getDirectory();
 
+//	/**
+//	 * Read access to the Hibernate properties contributed by the definition of this profile.
+//	 *
+//	 * @return The contributed Hibernate properties
+//	 */
 	/**
 	 * Read access to the Hibernate properties contributed by the definition of this profile.
-	 *
-	 * @return The contributed Hibernate properties
 	 */
 	Map<String,Object> getHibernateProperties();
 

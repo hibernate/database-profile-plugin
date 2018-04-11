@@ -32,16 +32,15 @@ package org.hibernate.build.gradle.testing.database;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.logging.Logging;
 
-import org.slf4j.Logger;
+import org.hibernate.build.gradle.testing.Helper;
 
 /**
  * Basic support for {@link Profile} implementations
@@ -50,8 +49,6 @@ import org.slf4j.Logger;
  * @author Strong Liu
  */
 public abstract class AbstractProfileImpl implements Profile {
-	private static final Logger log = Logging.getLogger( AbstractProfileImpl.class );
-
     private final String name;
 	private final File profileDirectory;
 	private final Project project;
@@ -63,33 +60,20 @@ public abstract class AbstractProfileImpl implements Profile {
 		this.name = profileDirectory.getName();
 		this.project = project;
 
-		this.hibernateProperties = new HashMap<String, Object>();
 		final File hibernatePropertiesFile = new File(
 				new File( profileDirectory, "resources" ),
 				"hibernate.properties"
 		);
-		if ( hibernatePropertiesFile.exists() ) {
-			Properties props = new Properties();
-			try {
-				FileInputStream stream = new FileInputStream( hibernatePropertiesFile );
-				try {
-					props.load( stream );
-				}
-				finally {
-					try {
-						stream.close();
-					}
-					catch (IOException ignore) {
+
+		final Map<String,Object> inflight = new HashMap();
+		Helper.loadPropertiesIfFileExists( hibernatePropertiesFile ).entrySet().forEach(
+				entry -> {
+					if ( entry.getKey() instanceof String ) {
+						inflight.put( (String) entry.getKey(), entry.getValue() );
 					}
 				}
-			}
-			catch (IOException e) {
-				log.warn( "Unable to read Hibernate properties for database profile [" + name + "]", e );
-			}
-			for ( String propName : props.stringPropertyNames() ) {
-				hibernateProperties.put( propName, props.getProperty( propName ) );
-			}
-		}
+		);
+		this.hibernateProperties = Collections.unmodifiableMap( inflight );
 	}
 
 	@Override

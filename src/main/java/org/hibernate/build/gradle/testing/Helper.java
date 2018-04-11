@@ -16,6 +16,14 @@ import java.util.Properties;
  * @author Steve Ebersole
  */
 public class Helper {
+	public static Properties loadPropertiesIfFileExists(File propFile) {
+		if ( ! propFile.exists() ) {
+			return new Properties();
+		}
+
+		return loadProperties( propFile );
+	}
+
 	public static Properties loadProperties(File propFile) {
 		try (FileInputStream stream = new FileInputStream( propFile )) {
 			final Properties props = new Properties();
