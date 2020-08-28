@@ -9,7 +9,6 @@ package org.hibernate.testing.db;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
@@ -22,6 +21,7 @@ import org.gradle.api.tasks.testing.Test;
 import org.hibernate.testing.db.alloc.DatabaseAllocator;
 
 import static org.hibernate.testing.db.Helper.DSL_NAME;
+import static org.hibernate.testing.db.Helper.LEGACY_PROFILE_NAME_CONFIG_NAME;
 import static org.hibernate.testing.db.Helper.PROFILE_NAME_CONFIG_NAME;
 import static org.hibernate.testing.db.Helper.TEST_ALL_PROFILES_TASK_NAME;
 
@@ -30,7 +30,6 @@ import static org.hibernate.testing.db.Helper.TEST_ALL_PROFILES_TASK_NAME;
  *
  * @author Steve Ebersole
  */
-@SuppressWarnings("unused")
 public class ProfilePlugin implements Plugin<Project> {
 	@Override
 	public void apply(Project project) {
@@ -45,6 +44,12 @@ public class ProfilePlugin implements Plugin<Project> {
 
 		if ( project.hasProperty( PROFILE_NAME_CONFIG_NAME ) ) {
 			final Object property = project.property( PROFILE_NAME_CONFIG_NAME );
+			if ( property != null ) {
+				dslExtension.setDefaultProfile( property.toString() );
+			}
+		}
+		else if ( project.hasProperty( LEGACY_PROFILE_NAME_CONFIG_NAME ) ) {
+			final Object property = project.property( LEGACY_PROFILE_NAME_CONFIG_NAME );
 			if ( property != null ) {
 				dslExtension.setDefaultProfile( property.toString() );
 			}

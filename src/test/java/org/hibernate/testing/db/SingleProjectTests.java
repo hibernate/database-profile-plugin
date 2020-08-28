@@ -58,6 +58,19 @@ public class SingleProjectTests {
 	}
 
 	@Test
+	public void testLegacyProjectPropertyUsage() {
+		final GradleRunner gradleRunner = createGradleRunner().withArguments(
+				"test",
+				"-Pdb=h2"
+		);
+
+		final BuildResult buildResult = gradleRunner.build();
+		TestHelper.logRunnerOutput( buildResult );
+
+		validateTaskResult( buildResult.task( ":test" ) );
+	}
+
+	@Test
 	public void testProfileTaskUsage() {
 		final GradleRunner gradleRunner = createGradleRunner().withArguments( "test_derby" );
 		final BuildResult buildResult = gradleRunner.build();

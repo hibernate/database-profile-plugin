@@ -6,6 +6,7 @@
  */
 package org.hibernate.testing.db;
 
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,8 +21,13 @@ import groovy.lang.Closure;
  * @author Steve Ebersole
  * @author Strong Liu
  */
-@SuppressWarnings("unused")
 public class Profile extends AbstractActionContainer {
+	public static final String DIALECT = "hibernate.dialect";
+	public static final String DRIVER = "hibernate.connection.driver_class";
+	public static final String URL = "hibernate.connection.url";
+	public static final String USERNAME = "hibernate.connection.username";
+	public static final String PASSWORD = "hibernate.connection.password";
+
 	private final String name;
 	private final Configuration dependencies;
 
@@ -78,17 +84,34 @@ public class Profile extends AbstractActionContainer {
 	}
 
 	public void hibernateProperty(String name, Object value) {
-		if ( this.hibernateProperties == null ) {
-			this.hibernateProperties = new HashMap<>();
-		}
-		this.hibernateProperties.put( name, value );
+		property( name, value );
 	}
 
-	public void hibernateProperty(String name, String value) {
+	public void property(String name, Object value) {
 		if ( hibernateProperties == null ) {
 			hibernateProperties = new HashMap<>();
 		}
 		hibernateProperties.put( name, value );
+	}
+
+	public void dialect(String dialect) {
+		property( DIALECT, dialect );
+	}
+
+	public void driver(String driverClassName) {
+		property( DRIVER, driverClassName );
+	}
+
+	public void url(String url) {
+		property( URL, url );
+	}
+
+	public void username(String username) {
+		property( USERNAME, username );
+	}
+
+	public void password(String password) {
+		property( PASSWORD, password );
 	}
 
 }

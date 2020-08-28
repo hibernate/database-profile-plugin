@@ -47,6 +47,11 @@ public class Helper {
 	public static final String PROFILE_NAME_CONFIG_NAME = "db_profile_name";
 
 	/**
+	 * Used to pass the name of the database profile to use for testing as a project (-P) property
+	 */
+	public static final String LEGACY_PROFILE_NAME_CONFIG_NAME = "db";
+
+	/**
 	 * Name of the standard directory, relative to a project's root, that is searched for profiles.
 	 */
 	public static final String STANDARD_DATABASES_DIRECTORY = "databases";
