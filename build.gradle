@@ -28,7 +28,7 @@ repositories {
 //
 // So long story short, not putting "gradle" in groupName here
 group = 'org.hibernate.build'
-version = '2.0.0.Beta4'
+version = '2.0.0-SNAPSHOT'
 
 buildDir = 'target'
 
