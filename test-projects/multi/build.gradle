@@ -1,0 +1,41 @@
+/*
+ * Hibernate, Relational Persistence for Idiomatic Java
+ *
+ * License: GNU Lesser General Public License (LGPL), version 2.1 or later
+ * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ */
+
+plugins {
+	id 'org.hibernate.testing.database-profile'
+}
+
+group 'org.hibernate.testing.db-profile'
+version '1.0.0-SNAPSHOT'
+
+
+databases {
+	profileSearchDirectory '../shared/profiles'
+
+	profiles {
+		derby {
+			hibernateProperty 'hibernate.connection.url',
+					'jdbc:derby:target/tmp/derby/hibernate_orm_test;databaseName=hibernate_orm_test;create=true'
+			hibernateProperty 'hibernate.connection.username', 'hibernate_orm_test'
+			hibernateProperty 'hibernate.connection.password', 'hibernate_orm_test'
+
+			dependency 'org.apache.derby:derby:10.11.1.1'
+
+			beforeTestTask { task ->
+				printf( "Executing Test task using derby profile" )
+			}
+
+			beforeEachTest { testDescriptor ->
+				printf( "Executing test `%s` against derby profile", testDescriptor )
+			}
+		}
+	}
+
+	beforeTestTask { task ->
+		println "Hello from the ProfilePlugin DSL before-test callback"
+	}
+}

@@ -3,39 +3,67 @@
 == Goal
 
 The idea of this plugin is to extend Gradle with the idea of named database profiles that a 
-user could choose between when starting a build.  The selection of a profile might imply a number of 
-actions that must occur based on the profile selected - we might need to add extra jars to the 
-`testRuntime` configuration, adjust properties files, etc.
-
+user could choose between when running tests.  This allows the project to define a single set
+of tests but have them run them against a dynamic set of databases.
 
 == Applying the plugin
-
-Using Gradle's new plugins DSL:
 
     plugins {
         ...
         id 'org.hibernate.testing.database-profile' version 'X.Y.Z'
     }
 
-Using Gradle's legacy Configuration approach:
+This applies a DSL extension of type `DslExtension` to the project under the name `databases`.  The following
+sections will break down the available options...
 
-	buildscript {
-	  repositories {
-        gradlePluginPortal()
-		// ^^ same as:
-		// maven {
-		//   url "https://plugins.gradle.org/m2/"
-		// }
-	  }
-	  dependencies {
-		classpath "gradle.plugin.org.hibernate.build:database-profile-plugin:X.Y.Z"
-	  }
-	}
-	
-	apply plugin: "org.hibernate.testing.database-profile"
+
+== What is a profile?
+
+A profile defines the information needed to run the tests against a particular database instance.
+This includes information like any dependencies needed, the connection URL, etc.
+
+`Profile` is the class describing a profile.  A profile can be defined in a few different ways,
+but all will ultimately create a `Profile` which all get added to the `DslExtension#profiles`
+attribute which is a Gradle `NamedDomainObjectContainer`.
+
+
+=== In-line profile definition
+
+A profile can be defined directly in the `databases` DSL extension.  E.g.:
+
+build.gradle
+----
+databases {
+    ...
+
+    profiles {
+        // creates a Profile named "h2"
+        h2 {
+			hibernateProperty 'hibernate.connection.url', 'jdbc:h2:mem:db1;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000'
+			hibernateProperty 'hibernate.connection.username', 'sa'
+			hibernateProperty 'hibernate.connection.password', 'sa'
+
+			dependency 'com.h2database:h2:1.4.196'
+        }
+    }
+}
+----
+
+
+== Profile fragments
+
+Profiles can also be defined using a Gradle fragment file.  The fragment is applied relative to the
+`profiles` `NamedDomainObjectContainer`
+
 
 
 == Basics
+
+
+The selection of a profile might imply a number of
+actions that must occur based on the profile selected - we might need to add extra jars to the
+`testRuntime` configuration, adjust properties files, etc.
+
 
 When applied, the plugin will:
 
@@ -119,7 +147,7 @@ The profile to use can be specified in 2 ways:
 
 == Plugin behavior
 
-During evaluation phase, the plugin locates all available profiles (see `ProfileResolver`) and
+During evaluation phase, the plugin locates all available profiles (see `ProfileLoader`) and
 creates the `applyDatabaseProfile` task (see `ProfileTask`).
 
 It delays as long as possible the determination of the specific profile to use.  This is needed

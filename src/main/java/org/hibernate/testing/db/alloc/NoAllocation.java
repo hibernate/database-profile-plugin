@@ -4,12 +4,14 @@
  * License: GNU Lesser General Public License (LGPL), version 2.1 or later
  * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
  */
-package org.hibernate.build.gradle.testing.database.alloc;
+package org.hibernate.testing.db.alloc;
 
 import org.gradle.api.tasks.testing.Test;
+import org.gradle.api.tasks.testing.TestDescriptor;
+
 
 /**
- * Implementation of DatabaseAllocation when no allocation should be performed
+ * Implementation of DatabaseAllocation when no allocation was found.
  *
  * @author Steve Ebersole
  */
@@ -20,17 +22,14 @@ class NoAllocation implements DatabaseAllocation {
     public static final NoAllocation INSTANCE = new NoAllocation();
 
     @Override
-    public void prepareForExecution(Test testTask) {
-        // nothing to do
+    public void beforeAllTests(Test task) {
     }
 
     @Override
-    public void beforeTestClass() {
-        // nothing to do
+    public void beforeEachTest(TestDescriptor testDescriptor) {
     }
 
     @Override
     public void release() {
-        // nothing to do
     }
 }

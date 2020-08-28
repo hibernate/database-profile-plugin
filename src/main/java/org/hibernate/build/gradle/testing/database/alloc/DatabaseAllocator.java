@@ -1,6 +1,13 @@
 /*
  * Hibernate, Relational Persistence for Idiomatic Java
  *
+ * License: GNU Lesser General Public License (LGPL), version 2.1 or later
+ * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ */
+
+/*
+ * Hibernate, Relational Persistence for Idiomatic Java
+ *
  * Copyright (c) 2012, Red Hat Inc. or third-party contributors as
  * indicated by the @author tags or express copyright attribution
  * statements applied by the authors.  All third-party contributions are
@@ -32,7 +39,7 @@ import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 
-import org.hibernate.build.gradle.testing.database.Profile;
+import org.hibernate.testing.db.Profile;
 
 /**
  * Delegate for managing dynamic database instance allocation as part of the testing lifecycle.
