@@ -17,14 +17,12 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.gradle.api.Project;
-import org.gradle.api.Task;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.testing.Test;
 import org.gradle.api.tasks.testing.TestDescriptor;
 import org.gradle.api.tasks.testing.TestListener;
 import org.gradle.api.tasks.testing.TestResult;
-import org.gradle.util.ConfigureUtil;
 
 /**
  * @author Steve Ebersole
@@ -169,8 +167,10 @@ public class Helper {
 
 		final File outputDirectory = determineOutputDirectory( project, profile.getName() );
 		copy.setWorkingDir( new File( outputDirectory, "work" ) );
+
 		copy.getReports().getHtml().setDestination( new File( outputDirectory, "reports" ) );
 		copy.getReports().getJunitXml().setDestination( new File( outputDirectory, "results" ) );
+		copy.getBinaryResultsDirectory().set( new File( outputDirectory, "binary-results" ) );
 
 		baseTestTask.copyTo( copy );
 
@@ -221,10 +221,6 @@ public class Helper {
 		testTask.getInputs().property( TEST_TASK_PROFILE_KEY, profile.getName() );
 
 		testTask.getExtensions().getExtraProperties().set( TEST_TASK_PROFILE_KEY, profile.getName() );
-
-		testTask.doFirst(
-				(task) -> ShowTestTaskInfo.renderTaskInfo( testTask, project.getLogger(), project )
-		);
 
 		// before Test task
 		profile.visitBeforeTestTaskActions(

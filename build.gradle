@@ -11,6 +11,7 @@ plugins {
 
 	id 'java-gradle-plugin'
 	id "com.gradle.plugin-publish" version "0.12.0"
+	id "nu.studer.credentials" version "2.1"
 
 	// for publishing snapshots
 	id 'maven-publish'
@@ -23,6 +24,21 @@ plugins {
 ext {
 	pluginId = 'org.hibernate.testing.database-profile'
 	pluginVersion = '2.0.0-SNAPSHOT'
+
+	//noinspection GrUnresolvedAccess
+	publishKey = credentials.'hibernate.gradle.publish.key'
+	//noinspection GrUnresolvedAccess
+	publishSecret = credentials.'hibernate.gradle.publish.secret'
+
+	if ( ext.publishKey == null ) {
+		throw new RuntimeException( "`hibernate.gradle.publish.key` not found" )
+	}
+	if ( ext.publishSecret == null ) {
+		throw new RuntimeException( "`hibernate.gradle.publish.secret` not found" )
+	}
+
+	project.setProperty( 'gradle.publish.key', ext.publishKey )
+	project.setProperty( 'gradle.publish.secret', ext.publishSecret )
 }
 
 repositories {
