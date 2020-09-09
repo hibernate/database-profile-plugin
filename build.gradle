@@ -22,7 +22,7 @@ plugins {
 
 ext {
 	pluginId = 'org.hibernate.testing.database-profile'
-	pluginVersion = '2.0.0.Beta5'
+	pluginVersion = '2.0.0-SNAPSHOT'
 }
 
 repositories {
