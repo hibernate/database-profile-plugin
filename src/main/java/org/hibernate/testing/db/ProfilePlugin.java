@@ -15,7 +15,6 @@ import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.Copy;
-import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.testing.Test;
 
 import org.hibernate.testing.db.alloc.DatabaseAllocator;
@@ -59,6 +58,17 @@ public class ProfilePlugin implements Plugin<Project> {
 	}
 
 	private static class AfterEvalAction {
+
+		public static void apply(
+				ProfileCreator profileCreator,
+				DslExtension dslExtension,
+				Project project) {
+			final AfterEvalAction afterEvalAction = new AfterEvalAction( profileCreator, dslExtension, project );
+			afterEvalAction.visitProject( project );
+
+			project.getTasks().create( "showProfileTestInfo", ShowTestTaskInfo.class );
+		}
+
 		private final ProfileCreator profileCreator;
 		private final DslExtension dslExtension;
 		private final Project project;
@@ -72,14 +82,6 @@ public class ProfilePlugin implements Plugin<Project> {
 			this.profileCreator = profileCreator;
 			this.dslExtension = dslExtension;
 			this.project = project;
-		}
-
-		public static void apply(
-				ProfileCreator profileCreator,
-				DslExtension dslExtension,
-				Project project) {
-			final AfterEvalAction afterEvalAction = new AfterEvalAction( profileCreator, dslExtension, project );
-			afterEvalAction.visitProject( project );
 		}
 
 		private void visitProject(Project project) {
@@ -139,7 +141,7 @@ public class ProfilePlugin implements Plugin<Project> {
 			Project project) {
 		// create the grouping task for running tests against all profiles
 		final Task groupingTask = project.getTasks().create( TEST_ALL_PROFILES_TASK_NAME );
-		groupingTask.setGroup( "Verification" );
+		groupingTask.setGroup( "database" );
 		groupingTask.setDescription( "Runs tests against all discovered database profiles" );
 
 		// find the test task...
@@ -149,13 +151,9 @@ public class ProfilePlugin implements Plugin<Project> {
 			return;
 		}
 
-		groupingTask.dependsOn( mainTestTask );
-
-		final SourceSet sourceSet = javaPluginConvention.getSourceSets().getByName( SourceSet.TEST_SOURCE_SET_NAME );
-
 		dslExtension.getProfiles().forEach(
 				(profile) -> {
-					final Test profileTestTask = makeCopy( mainTestTask, sourceSet, profile, project );
+					final Test profileTestTask = Helper.makeCopy( mainTestTask, javaPluginConvention, profile, dslExtension, project );
 					Helper.applyProfile( profile, profileTestTask, dslExtension, project );
 					groupingTask.dependsOn( profileTestTask );
 				}
@@ -176,11 +174,12 @@ public class ProfilePlugin implements Plugin<Project> {
 		);
 
 		final TestPropertiesAugmentTask augmentTestPropertiesTask = project.getTasks().create(
-				"augmentTestProperties",
+				TestPropertiesAugmentTask.NAME,
 				TestPropertiesAugmentTask.class,
 				selectedProfile,
 				project
 		);
+		augmentTestPropertiesTask.setGroup( "database" );
 	}
 
 	private static void applyToNonJavaProject(DslExtension dslExtension, Project project) {
@@ -193,21 +192,4 @@ public class ProfilePlugin implements Plugin<Project> {
 		);
 	}
 
-	private static Test makeCopy(Test mainTestTask, SourceSet sourceSet, Profile profile, Project project) {
-		final Test copy = project.getTasks().create( mainTestTask.getName() + "_" + profile.getName(), Test.class );
-
-		copy.setDescription( "Runs tests against the `" + profile.getName() + "` profile" );
-		copy.setClasspath( sourceSet.getRuntimeClasspath() );
-		copy.setTestClassesDirs( sourceSet.getOutput() );
-		copy.setIgnoreFailures( true );
-
-		final File outputDirectory = Helper.determineOutputDirectory( project, profile.getName() );
-		copy.setWorkingDir( outputDirectory );
-		copy.getReports().getHtml().setDestination( new File( outputDirectory, "reports" ) );
-		copy.getReports().getJunitXml().setDestination( new File( outputDirectory, "results" ) );
-
-		copy.getSystemProperties().putAll( mainTestTask.getSystemProperties() );
-
-		return copy;
-	}
 }

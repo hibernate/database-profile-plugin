@@ -23,6 +23,7 @@ dependencies {
 
 databases {
 	profileSearchDirectory '../shared/profiles'
+	profileSearchDirectory 'databases'
 
 	profiles {
 		derby {

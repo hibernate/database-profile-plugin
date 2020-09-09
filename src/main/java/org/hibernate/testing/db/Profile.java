@@ -54,10 +54,20 @@ public class Profile extends AbstractActionContainer {
 	}
 
 	public void dependency(Object notation) {
+//		project.getLogger().lifecycle(
+//				"Adding `{}` dependency to `{}` profile Configuration",
+//				notation,
+//				dependencies.getName()
+//		);
 		project.getDependencies().add( dependencies.getName(), notation );
 	}
 
 	public void dependency(Object notation, Closure<?> config) {
+//		project.getLogger().lifecycle(
+//				"Adding `{}` dependency to `{}` profile Configuration",
+//				notation,
+//				dependencies.getName()
+//		);
 		project.getDependencies().add( dependencies.getName(), notation, config );
 	}
 

@@ -91,7 +91,7 @@ class ProfileLoader {
 			return null;
 		}
 
-		final Profile profile = profileCreator.create( directory.getName() );
+		final Profile profile = dslExtension.getProfiles().maybeCreate( directory.getName() );
 
 		final Properties properties = Helper.loadProperties( propertiesFile );
 		profile.applyHibernateProperties( properties );

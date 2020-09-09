@@ -40,8 +40,7 @@ public class DslExtension extends AbstractActionContainer implements ProfileAcce
 		this.profiles = project.container( Profile.class, profileCreator );
 
 		final File databasesDirectory = project.file( STANDARD_DATABASES_DIRECTORY );
-		if ( databasesDirectory.exists()
-				&& databasesDirectory.isDirectory() ) {
+		if ( databasesDirectory.exists() && databasesDirectory.isDirectory() ) {
 			profileSearchDirectories.add( databasesDirectory );
 		}
 
@@ -51,6 +50,19 @@ public class DslExtension extends AbstractActionContainer implements ProfileAcce
 				&& customDirectoryViaProperty.isDirectory() ) {
 			profileSearchDirectories.add( customDirectoryViaProperty );
 		}
+
+		project.afterEvaluate(
+				p -> {
+					// just want to get a callback for debugging
+					project.getLogger().lifecycle(
+							"After evaluation, discovered profiles include:"
+					);
+
+					profiles.forEach(
+							profile -> project.getLogger().lifecycle( "   > {}", profile.getName() )
+					);
+				}
+		);
 	}
 
 	private static File resolveCustomDirectoryProperty(Project project) {

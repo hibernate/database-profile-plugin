@@ -9,6 +9,7 @@ import java.util.Locale;
 import org.gradle.api.NamedDomainObjectFactory;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.tasks.testing.Test;
 
 /**
  * @author Steve Ebersole
@@ -26,6 +27,7 @@ public class ProfileCreator implements NamedDomainObjectFactory<Profile> {
 				+ name.substring( 0, 1 ).toUpperCase( Locale.ROOT )
 				+ name.substring( 1 );
 		final Configuration profileDependencies = project.getConfigurations().maybeCreate( dependenciesName );
+		profileDependencies.setDescription( "Dependencies for the `" + name + "` database profile" );
 
 		return new Profile( name, profileDependencies, project );
 	}

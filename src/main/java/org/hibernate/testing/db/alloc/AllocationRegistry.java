@@ -32,6 +32,10 @@ public class AllocationRegistry implements BuildListener {
 	}
 
 	public void release() {
+		if ( databaseAllocationMap == null ) {
+			return;
+		}
+
 		databaseAllocationMap.forEach( (profile, allocation) -> allocation.release() );
 		databaseAllocationMap.clear();
 	}

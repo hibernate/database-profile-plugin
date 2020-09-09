@@ -19,6 +19,8 @@ import org.gradle.api.tasks.TaskAction;
  * @author Steve Ebersole
  */
 public class TestPropertiesAugmentTask extends AbstractTask {
+	public static final String NAME = "augmentTestProperties";
+
 	private final Profile selectedProfile;
 	private final Project project;
 
@@ -28,6 +30,11 @@ public class TestPropertiesAugmentTask extends AbstractTask {
 			Project project) {
 		this.selectedProfile = selectedProfile;
 		this.project = project;
+
+		setDescription(
+				"Applies properties defined by the profile indicated by the `db` project property to the" +
+						"properties file for running tests"
+		);
 	}
 
 	@TaskAction

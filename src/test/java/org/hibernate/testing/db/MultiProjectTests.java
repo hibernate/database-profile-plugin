@@ -26,135 +26,114 @@ public class MultiProjectTests {
 	public void testImplicitProfile() {
 		withAllProjects(
 				gradleRunner -> {
-					final BuildResult buildResult = gradleRunner.withArguments( "test" ).build();
+					final BuildResult buildResult = gradleRunner.build();
 
 					System.out.println( buildResult.getOutput() );
-				}
+				},
+				"test"
 		);
 	}
 
-	private void withAllProjects(Consumer<GradleRunner> gradleRunnerConsumer) {
-		gradleRunnerConsumer.accept( createSub2GradleRunner() );
-		gradleRunnerConsumer.accept( createSubGradleRunner() );
-		gradleRunnerConsumer.accept( createRootGradleRunner() );
+	private void withAllProjects(Consumer<GradleRunner> gradleRunnerConsumer, String... args) {
+		gradleRunnerConsumer.accept( createSub2GradleRunner( args ) );
+		gradleRunnerConsumer.accept( createSubGradleRunner( args ) );
+		gradleRunnerConsumer.accept( createRootGradleRunner( args ) );
 	}
 
-	private GradleRunner createRootGradleRunner() {
-		return GradleRunner.create()
-				.withProjectDir( TestHelper.projectDirectory( PROJECT_NAME ) )
-				.withDebug( true )
-				.withPluginClasspath();
+	private GradleRunner createRootGradleRunner(String... args) {
+		return TestHelper.createGradleRunner( PROJECT_NAME, args );
 	}
 
-	private GradleRunner createSubGradleRunner() {
-		return GradleRunner.create()
-				.withProjectDir( TestHelper.projectDirectory( SUB_PROJECT_NAME ) )
-				.withDebug( true )
-				.withPluginClasspath();
+	private GradleRunner createSubGradleRunner(String... args) {
+		return TestHelper.createGradleRunner( SUB_PROJECT_NAME, args );
 	}
 
-	private GradleRunner createSub2GradleRunner() {
-		return GradleRunner.create()
-				.withProjectDir( TestHelper.projectDirectory( SUB2_PROJECT_NAME ) )
-				.withDebug( true )
-				.withPluginClasspath();
+	private GradleRunner createSub2GradleRunner(String... args) {
+		return TestHelper.createGradleRunner( SUB2_PROJECT_NAME, args );
 	}
 
 	@Test
 	public void testExplicitDefaultProfile() {
 		withAllProjects(
 				gradleRunner -> {
-					final GradleRunner runner = gradleRunner.withArguments(
-							"test",
-							"-Pdb_profile_name=h2"
-					);
-					final BuildResult buildResult = runner.build();
+					final BuildResult buildResult = gradleRunner.build();
 					System.out.println( buildResult.getOutput() );
-				}
+				},
+				"test",
+				"-Pdb_profile_name=h2"
 		);
 	}
 
 	@Test
 	public void testProjectPropertyUsage() {
 		withAllProjects(
-				baseRunner -> {
-					final GradleRunner gradleRunner = baseRunner.withArguments(
-							"test",
-							"-Pdb_profile_name=derby"
-					);
+				gradleRunner -> {
 					final BuildResult buildResult = gradleRunner.build();
 
 					System.out.println( buildResult.getOutput() );
-				}
+				},
+				"test",
+				"-Pdb_profile_name=derby"
 		);
 	}
 
 	@Test
 	public void testProfileTask() {
 		withAllProjects(
-				gradleRunnerBase -> {
-					final GradleRunner gradleRunner = gradleRunnerBase.withArguments( "test_derby" );
-
+				gradleRunner -> {
 					final BuildResult buildResult = gradleRunner.build();
 
 					System.out.println( buildResult.getOutput() );
-				}
+				},
+				"test_derby"
 		);
 	}
 
 	@Test
 	public void testAllProfiles() {
 		withAllProjects(
-				gradleRunnerBase -> {
-					final GradleRunner gradleRunner = gradleRunnerBase.withArguments( "testAllDbProfiles" );
-
+				gradleRunner -> {
 					final BuildResult buildResult = gradleRunner.build();
 
 					System.out.println( buildResult.getOutput() );
-				}
+				},
+				"testAllDbProfiles"
 		);
 	}
 
 	@Test
 	public void testAugmentProperties() {
 		withAllProjects(
-				gradleRunnerBase -> {
-					final GradleRunner gradleRunner = gradleRunnerBase.withArguments(
-							"augmentTestProperties",
-							"-Pdb_profile_name=derby"
-					);
-
+				gradleRunner -> {
 					final BuildResult buildResult = gradleRunner.build();
 
 					System.out.println( buildResult.getOutput() );
-				}
+				},
+				"augmentTestProperties",
+				"-Pdb_profile_name=derby"
 		);
 	}
 
 	@Test
 	public void testInvalidProjectProperty() {
 		withAllProjects(
-				gradleRunnerBase -> {
-					final GradleRunner gradleRunner = gradleRunnerBase.withArguments(
-							"test",
-							"-Pdb_profile_name=mongodb"
-					);
-
+				gradleRunner -> {
 					final BuildResult buildResult = gradleRunner.buildAndFail();
 					System.out.println( buildResult.getOutput() );
-				}
+				},
+				"test",
+				"-Pdb_profile_name=mongodb"
 		);
 	}
 
 	@Test
 	public void testInvalidProfileTask() {
 		withAllProjects(
-				gradleRunnerBase -> {
-					final GradleRunner gradleRunner = gradleRunnerBase.withArguments( "test_monogdb" );
-
+				gradleRunner -> {
 					final BuildResult buildResult = gradleRunner.buildAndFail();
 					System.out.println( buildResult.getOutput() );
-				}
+				},
+				"test_monogdb"
 		);
 	}
 }

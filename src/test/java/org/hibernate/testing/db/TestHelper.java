@@ -8,6 +8,9 @@ package org.hibernate.testing.db;
 
 import java.io.File;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
@@ -32,7 +35,7 @@ public class TestHelper {
 		return new File( testProjectsBaseDirectory(), projectPath );
 	}
 
-	public static GradleRunner createGradleRunner(String projectPath) {
+	public static GradleRunner createGradleRunner(String projectPath, String... args) {
 		final File projectsBaseDirectory = testProjectsBaseDirectory();
 		final File projectDirectory = new File( projectsBaseDirectory, projectPath );
 		final File testKitDir = new File(
@@ -45,12 +48,16 @@ public class TestHelper {
 		);
 
 		final GradleRunner gradleRunner = GradleRunner.create();
+		final List<String> arguments = new ArrayList<>( Arrays.asList( args ) );
+		arguments.add( "--stacktrace" );
+
 		return gradleRunner
 				.withPluginClasspath()
 				.withProjectDir( projectDirectory )
 				.withTestKitDir( testKitDir )
 				.forwardOutput()
 				.withDebug( true )
+				.withArguments( arguments )
 				.withPluginClasspath();
 	}
 

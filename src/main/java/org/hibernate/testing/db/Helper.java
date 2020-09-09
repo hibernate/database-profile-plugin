@@ -16,12 +16,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
+import org.gradle.api.plugins.JavaPluginConvention;
+import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.testing.Test;
 import org.gradle.api.tasks.testing.TestDescriptor;
 import org.gradle.api.tasks.testing.TestListener;
 import org.gradle.api.tasks.testing.TestResult;
+import org.gradle.util.ConfigureUtil;
 
 /**
  * @author Steve Ebersole
@@ -62,8 +65,6 @@ public class Helper {
 	 * A "grouping" task for executing tests against all resolved database profiles
 	 */
 	public static final String TEST_ALL_PROFILES_TASK_NAME = "testAllDbProfiles";
-
-	public static final String PROFILE_GRADLE_FILE = "profile.gradle";
 
 	/**
 	 * Convenience method to determine the output directory for the specified profile name
@@ -146,20 +147,84 @@ public class Helper {
 		}
 	}
 
+	static Test makeCopy(
+			Test baseTestTask,
+			JavaPluginConvention javaPluginConvention,
+			Profile profile,
+			DslExtension dslExtension,
+			Project project) {
+		project.getLogger().lifecycle(
+				"Making copy of `{}` Test task for `{}` profile",
+				baseTestTask.getPath(),
+				profile.getName()
+		);
+
+		final Test copy = project.getTasks().create( baseTestTask.getName() + "_" + profile.getName(), Test.class );
+		copy.setGroup( "database" );
+		copy.setDescription( "Runs tests against the `" + profile.getName() + "` profile" );
+		copy.setIgnoreFailures( baseTestTask.getIgnoreFailures() );
+		copy.setIncludes( baseTestTask.getIncludes() );
+
+		copy.getSystemProperties().putAll( baseTestTask.getSystemProperties() );
+
+		final File outputDirectory = determineOutputDirectory( project, profile.getName() );
+		copy.setWorkingDir( new File( outputDirectory, "work" ) );
+		copy.getReports().getHtml().setDestination( new File( outputDirectory, "reports" ) );
+		copy.getReports().getJunitXml().setDestination( new File( outputDirectory, "results" ) );
+
+		baseTestTask.copyTo( copy );
+
+		final SourceSet baseSourceSet = javaPluginConvention.getSourceSets().getByName( SourceSet.TEST_SOURCE_SET_NAME );
+
+		copy.setDependsOn( baseTestTask.getDependsOn() );
+		copy.dependsOn( baseSourceSet.getClassesTaskName() );
+
+		copy.setClasspath( profile.getDependencies().plus( baseSourceSet.getRuntimeClasspath() ) );
+		copy.setTestClassesDirs( baseSourceSet.getOutput().getClassesDirs() );
+
+		// for the moment we simply enable all test platforms because I have not yet seen a way to be able
+		//		to query that information from the task-being-copied-from.  - no idea about any ramifications
+		// todo : is there a way to ask the `baseTestTask` which platforms were enabled?
+		//		- https://discuss.gradle.org/t/make-a-complete-copy-of-test-task/37539
+		copy.useJUnitPlatform();
+		copy.useJUnit();
+		copy.useTestNG();
+
+		copy.jvmArgs( "-Xms1024M", "-Xmx1024M" );
+		copy.setMaxHeapSize( "1024M" );
+
+		return copy;
+	}
+
+	/**
+	 * Applies profile-specific details to the given Test task
+	 */
 	public static void applyProfile(
 			Profile profile,
 			Test testTask,
 			DslExtension dslExtension,
 			Project project) {
-		// add an input to the test task for the selected profile for up-to-date checking
-		testTask.getInputs().property( TEST_TASK_PROFILE_KEY, profile.getName() );
-		testTask.getExtensions().getExtraProperties().set( TEST_TASK_PROFILE_KEY, profile.getName() );
+		project.getLogger().lifecycle(
+				"Applying `{}` profile to `{}` Test task",
+				profile.getName(),
+				testTask.getPath()
+		);
 
 		// add the properties
 		testTask.getSystemProperties().putAll( profile.getHibernateProperties() );
 
 		// add the extra dependencies to the test task
-		testTask.getClasspath().plus( profile.getDependencies() );
+		testTask.setClasspath( testTask.getClasspath().plus( profile.getDependencies() ) );
+		testTask.dependsOn( profile.getDependencies() );
+
+		// add an input to the test task for the selected profile for up-to-date checking
+		testTask.getInputs().property( TEST_TASK_PROFILE_KEY, profile.getName() );
+
+		testTask.getExtensions().getExtraProperties().set( TEST_TASK_PROFILE_KEY, profile.getName() );
+
+		testTask.doFirst(
+				(task) -> ShowTestTaskInfo.renderTaskInfo( testTask, project.getLogger(), project )
+		);
 
 		// before Test task
 		profile.visitBeforeTestTaskActions(
@@ -243,10 +308,6 @@ public class Helper {
 		}
 	}
 
-	private Helper() {
-		// disallow direct instantiation
-	}
-
 	public static Map<String, ?> asMap(Object... values) {
 		if ( values.length %2 != 0 ) {
 			throw new BuildExecutionException( "Expecting even number of values to create Map" );
@@ -264,5 +325,9 @@ public class Helper {
 		}
 
 		return map;
+	}
+
+	private Helper() {
+		// disallow direct instantiation
 	}
 }

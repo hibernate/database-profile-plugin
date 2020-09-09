@@ -25,16 +25,20 @@ class ProfileFragmentTarget {
 		final Closure<?> closure = (Closure<?>) args[0];
 
 		if ( name == Helper.DSL_NAME ) {
-			closure.setDelegate( dslExtension );
-			closure.call();
+			closure.setDelegate( dslExtension )
+			closure.call()
+		}
+		else if ( name == 'profiles' ) {
+			closure.setDelegate( dslExtension.profiles )
+			closure.call()
 		}
 		else {
-			final Profile profile = profileCreator.create( name );
+			final Profile profile = dslExtension.profiles.maybeCreate( name );
 
-			closure.setDelegate( profile );
-			closure.call();
+			closure.setDelegate( profile )
+			closure.call()
 
-			dslExtension.profiles.add( profile );
+			dslExtension.profiles.add( profile )
 		}
 	}
 }
