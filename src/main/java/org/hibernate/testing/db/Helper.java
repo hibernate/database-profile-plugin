@@ -21,8 +21,12 @@ import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.testing.Test;
 import org.gradle.api.tasks.testing.TestDescriptor;
+import org.gradle.api.tasks.testing.TestFrameworkOptions;
 import org.gradle.api.tasks.testing.TestListener;
 import org.gradle.api.tasks.testing.TestResult;
+import org.gradle.api.tasks.testing.junit.JUnitOptions;
+import org.gradle.api.tasks.testing.junitplatform.JUnitPlatformOptions;
+import org.gradle.api.tasks.testing.testng.TestNGOptions;
 
 /**
  * @author Steve Ebersole
@@ -182,13 +186,17 @@ public class Helper {
 		copy.setClasspath( profile.getDependencies().plus( baseSourceSet.getRuntimeClasspath() ) );
 		copy.setTestClassesDirs( baseSourceSet.getOutput().getClassesDirs() );
 
-		// for the moment we simply enable all test platforms because I have not yet seen a way to be able
-		//		to query that information from the task-being-copied-from.  - no idea about any ramifications
-		// todo : is there a way to ask the `baseTestTask` which platforms were enabled?
-		//		- https://discuss.gradle.org/t/make-a-complete-copy-of-test-task/37539
-		copy.useJUnitPlatform();
-		copy.useJUnit();
-		copy.useTestNG();
+		// fugly - i feel dirty
+		final TestFrameworkOptions testFrameworkOptions = copy.getTestFramework().getOptions();
+		if ( testFrameworkOptions instanceof TestNGOptions ) {
+			copy.useTestNG();
+		}
+		else if ( testFrameworkOptions instanceof JUnitOptions ) {
+			copy.useJUnit();
+		}
+		else if ( testFrameworkOptions instanceof JUnitPlatformOptions ) {
+			copy.useJUnitPlatform();
+		}
 
 		copy.jvmArgs( "-Xms1024M", "-Xmx1024M" );
 		copy.setMaxHeapSize( "1024M" );

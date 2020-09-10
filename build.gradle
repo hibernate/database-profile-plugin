@@ -15,7 +15,7 @@ plugins {
 
 	// for publishing snapshots
 	id 'maven-publish'
-	id 'org.hibernate.build.maven-repo-auth' version '3.0.3'
+	id 'org.hibernate.build.maven-repo-auth' version '3.0.4'
 
 	id 'idea'
 	id 'eclipse'
@@ -29,13 +29,6 @@ ext {
 	publishKey = credentials.'hibernate.gradle.publish.key'
 	//noinspection GrUnresolvedAccess
 	publishSecret = credentials.'hibernate.gradle.publish.secret'
-
-	if ( ext.publishKey == null ) {
-		throw new RuntimeException( "`hibernate.gradle.publish.key` not found" )
-	}
-	if ( ext.publishSecret == null ) {
-		throw new RuntimeException( "`hibernate.gradle.publish.secret` not found" )
-	}
 
 	project.setProperty( 'gradle.publish.key', ext.publishKey )
 	project.setProperty( 'gradle.publish.secret', ext.publishSecret )
@@ -55,7 +48,7 @@ repositories {
 //
 // So long story short, not putting "gradle" in groupName here
 group = 'org.hibernate.build.gradle'
-version = ext.pluginVersion
+version = pluginVersion
 
 buildDir = 'target'
 
@@ -73,6 +66,21 @@ sourceSets {
 					include '*'
 				}
 			}
+		}
+	}
+}
+
+if ( version.toString().endsWith( '-SNAPSHOT' ) ) {
+	tasks.publishPlugins.enabled = false
+}
+
+tasks.publishPlugins {
+	doFirst {
+		if ( ext.publishKey == null ) {
+			throw new RuntimeException( "`hibernate.gradle.publish.key` not found" )
+		}
+		if ( ext.publishSecret == null ) {
+			throw new RuntimeException( "`hibernate.gradle.publish.secret` not found" )
 		}
 	}
 }
